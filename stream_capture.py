@@ -13,9 +13,11 @@ import io
 
 
 class StreamCapture:
-    def __init__(self, url: str, headless: bool = True):
+    def __init__(self, url: str, headless: bool = True, email: str = None, password: str = None):
         self.url = url
         self.headless = headless
+        self.email = email
+        self.password = password
         self.browser = None
         self.page = None
         self.is_capturing = False
@@ -34,7 +36,109 @@ class StreamCapture:
         
         # Wait for the page to load
         await self.page.wait_for_load_state("networkidle")
+        
+        # If credentials are provided, attempt to login
+        if self.email and self.password:
+            await self.login()
+        
         await asyncio.sleep(3)  # Additional wait for stream to start
+        
+    async def login(self):
+        """Attempt to login using provided credentials."""
+        try:
+            print("🔐 Attempting to login...")
+            
+            # Look for common login elements
+            login_selectors = [
+                'input[type="email"]',
+                'input[name="email"]',
+                'input[name="login"]',
+                'input[name="username"]',
+                '#email',
+                '#login',
+                '#username'
+            ]
+            
+            password_selectors = [
+                'input[type="password"]',
+                'input[name="password"]',
+                '#password'
+            ]
+            
+            submit_selectors = [
+                'button[type="submit"]',
+                'input[type="submit"]',
+                'button:has-text("Přihlásit")',  # Czech for "Login"
+                'button:has-text("Login")',
+                'button:has-text("Sign in")',
+                '.login-button',
+                '#login-button'
+            ]
+            
+            # Find email/username field
+            email_field = None
+            for selector in login_selectors:
+                try:
+                    email_field = await self.page.wait_for_selector(selector, timeout=2000)
+                    if email_field:
+                        break
+                except:
+                    continue
+            
+            if not email_field:
+                print("⚠️  No email/username field found, checking if already logged in...")
+                return
+            
+            # Find password field
+            password_field = None
+            for selector in password_selectors:
+                try:
+                    password_field = await self.page.wait_for_selector(selector, timeout=2000)
+                    if password_field:
+                        break
+                except:
+                    continue
+            
+            if not password_field:
+                print("⚠️  No password field found")
+                return
+            
+            # Fill in credentials
+            await email_field.fill(self.email)
+            print(f"✓ Filled email: {self.email}")
+            
+            await password_field.fill(self.password)
+            print("✓ Filled password")
+            
+            # Find and click submit button
+            submit_button = None
+            for selector in submit_selectors:
+                try:
+                    submit_button = await self.page.wait_for_selector(selector, timeout=2000)
+                    if submit_button:
+                        break
+                except:
+                    continue
+            
+            if submit_button:
+                await submit_button.click()
+                print("✓ Clicked login button")
+                
+                # Wait for navigation or login to complete
+                try:
+                    await self.page.wait_for_load_state("networkidle", timeout=10000)
+                    print("✓ Login completed successfully")
+                except:
+                    print("⚠️  Login may have completed (timeout waiting for networkidle)")
+                    
+            else:
+                print("⚠️  No submit button found, trying Enter key")
+                await password_field.press("Enter")
+                await self.page.wait_for_load_state("networkidle", timeout=5000)
+                
+        except Exception as e:
+            print(f"⚠️  Login attempt failed: {e}")
+            print("Continuing without login...")
         
     async def capture_frame(self) -> np.ndarray:
         """Capture a single frame from the stream."""
@@ -118,9 +222,9 @@ class StreamCapture:
 
 
 # Convenience function for simple frame capture
-async def capture_single_frame(url: str) -> np.ndarray:
+async def capture_single_frame(url: str, email: str = None, password: str = None) -> np.ndarray:
     """Capture a single frame from the stream URL."""
-    capture = StreamCapture(url)
+    capture = StreamCapture(url, email=email, password=password)
     try:
         await capture.initialize()
         frame = await capture.capture_roulette_area()

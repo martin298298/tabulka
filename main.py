@@ -15,9 +15,9 @@ from physics import RoulettePhysics, RouletteState
 
 
 class RoulettePredictionSystem:
-    def __init__(self, url: str, headless: bool = False):
+    def __init__(self, url: str, headless: bool = False, email: str = None, password: str = None):
         self.url = url
-        self.stream_capture = StreamCapture(url, headless=headless)
+        self.stream_capture = StreamCapture(url, headless=headless, email=email, password=password)
         self.vision = RouletteVision()
         self.physics = RoulettePhysics()
         
@@ -178,6 +178,10 @@ async def main():
     # Default URL for the specified casino
     url = "https://www.tokyo.cz/game/tomhornlive_56"
     
+    # Default credentials from problem statement
+    email = "martin298@post.cz"
+    password = "Certik298"
+    
     print("🎰 Roulette Prediction System")
     print("=" * 40)
     print("This system analyzes live roulette streams to predict ball landing positions.")
@@ -195,10 +199,11 @@ async def main():
     
     print(f"\n🌐 Target URL: {url}")
     print(f"🖥️  Headless mode: {headless}")
+    print(f"🔐 Using login credentials: {email}")
     print()
     
     # Create and run prediction system
-    system = RoulettePredictionSystem(url, headless=headless)
+    system = RoulettePredictionSystem(url, headless=headless, email=email, password=password)
     
     try:
         await system.initialize()

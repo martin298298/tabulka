@@ -118,10 +118,13 @@ class AlternativeStreamCapture:
             "✓ Computer Vision",
             "✓ Physics Simulation", 
             "✓ Prediction Algorithm",
+            "✓ Login Authentication",
             "",
             "To use with real stream:",
             "1. Install Playwright: playwright install",
-            "2. Or use browser screenshot manually"
+            "2. Or use browser screenshot manually",
+            "",
+            "Login credentials configured for tokyo.cz"
         ]
         
         y_start = 50
