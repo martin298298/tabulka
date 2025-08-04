@@ -8,6 +8,8 @@ Real-time roulette prediction system that analyzes live casino streams to predic
 - Real-time ball and wheel detection using OpenCV
 - Physics-based trajectory prediction
 - Browser automation with Playwright
+- **NEW: Automatic video play button detection and clicking**
+- **Support for Czech casino interfaces ("přehrát bez zvuku")**
 - Optimized for speed and accuracy
 
 ## Installation
