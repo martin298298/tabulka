@@ -41,6 +41,9 @@ class StreamCapture:
         if self.email and self.password:
             await self.login()
         
+        # Try to click video play buttons to start the stream
+        await self.click_video_play_buttons()
+        
         await asyncio.sleep(3)  # Additional wait for stream to start
         
     async def login(self):
@@ -139,6 +142,127 @@ class StreamCapture:
         except Exception as e:
             print(f"⚠️  Login attempt failed: {e}")
             print("Continuing without login...")
+
+    async def click_video_play_buttons(self):
+        """Detect and click video play buttons to start the stream."""
+        try:
+            print("🎬 Looking for video play buttons...")
+            
+            # Common selectors for video play buttons
+            play_button_selectors = [
+                # Standard video controls
+                'button[aria-label*="play"]',
+                'button[title*="play"]',
+                'button[aria-label*="Play"]',
+                'button[title*="Play"]',
+                '.play-button',
+                '.video-play-button',
+                '.player-play-button',
+                
+                # Mute/unmute buttons (often need to be clicked for autoplay)
+                'button[aria-label*="mute"]',
+                'button[aria-label*="unmute"]',
+                'button[title*="mute"]',
+                'button[title*="unmute"]',
+                'button[aria-label*="sound"]',
+                'button[title*="sound"]',
+                '.mute-button',
+                '.sound-button',
+                '.volume-button',
+                
+                # Czech language variants
+                'button:has-text("Přehrát")',  # Play
+                'button:has-text("přehrát")',  # play (lowercase)
+                'button:has-text("Přehrát bez zvuku")',  # Play without sound
+                'button:has-text("přehrát bez zvuku")',  # play without sound (lowercase)
+                'button:has-text("Spustit")',  # Start
+                'button:has-text("spustit")',  # start (lowercase)
+                'button[aria-label*="přehrát"]',
+                'button[title*="přehrát"]',
+                'button[aria-label*="zvuk"]',  # sound
+                'button[title*="zvuk"]',
+                
+                # Generic video/media selectors
+                '[role="button"][aria-label*="play"]',
+                '[role="button"][title*="play"]',
+                'div[class*="play"]',
+                'span[class*="play"]',
+                '.video-overlay button',
+                '.media-control button',
+                '.player-overlay button',
+                
+                # HTML5 video controls
+                'video + div button',  # Button next to video element
+                'video ~ div button',   # Button sibling to video element
+                '.video-container button',
+                '.video-wrapper button',
+                
+                # Casino/game specific selectors
+                '.game-controls button',
+                '.casino-controls button',
+                '.live-controls button'
+            ]
+            
+            buttons_clicked = 0
+            
+            # Try each selector
+            for selector in play_button_selectors:
+                try:
+                    # Look for the element with a short timeout
+                    elements = await self.page.query_selector_all(selector)
+                    
+                    for element in elements:
+                        try:
+                            # Check if element is visible and clickable
+                            is_visible = await element.is_visible()
+                            if not is_visible:
+                                continue
+                            
+                            # Get element properties to determine if it's a play/mute button
+                            aria_label = await element.get_attribute('aria-label') or ''
+                            title = await element.get_attribute('title') or ''
+                            text_content = await element.text_content() or ''
+                            class_name = await element.get_attribute('class') or ''
+                            
+                            # Check if this looks like a play or mute button
+                            element_text = f"{aria_label} {title} {text_content} {class_name}".lower()
+                            
+                            play_keywords = ['play', 'přehrát', 'spustit', 'start']
+                            sound_keywords = ['mute', 'unmute', 'sound', 'zvuk', 'audio', 'volume']
+                            
+                            is_play_button = any(keyword in element_text for keyword in play_keywords)
+                            is_sound_button = any(keyword in element_text for keyword in sound_keywords)
+                            
+                            if is_play_button or is_sound_button:
+                                print(f"   Found potential button: {selector}")
+                                print(f"   Button properties: aria-label='{aria_label}', title='{title}', text='{text_content}'")
+                                
+                                # Click the button
+                                await element.click()
+                                buttons_clicked += 1
+                                print(f"   ✓ Clicked button ({buttons_clicked})")
+                                
+                                # Wait a moment for the action to take effect
+                                await asyncio.sleep(1)
+                                
+                        except Exception as e:
+                            print(f"   ⚠️  Could not click element: {e}")
+                            continue
+                        
+                except Exception as e:
+                    # Selector not found or other error, continue to next
+                    continue
+            
+            if buttons_clicked > 0:
+                print(f"✓ Clicked {buttons_clicked} video control button(s)")
+                # Wait a bit longer for video to start
+                await asyncio.sleep(3)
+            else:
+                print("⚠️  No video play buttons found - stream may already be playing")
+                
+        except Exception as e:
+            print(f"⚠️  Error while looking for play buttons: {e}")
+            print("Continuing anyway...")
         
     async def capture_frame(self) -> np.ndarray:
         """Capture a single frame from the stream."""
