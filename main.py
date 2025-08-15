@@ -28,6 +28,7 @@ except Exception as e:
 
 from vision import RouletteVision
 from physics import RoulettePhysics, RouletteState
+from tts_system import get_tts_system, cleanup_tts
 
 
 class RoulettePredictionSystem:
@@ -54,6 +55,9 @@ class RoulettePredictionSystem:
         
         self.vision = RouletteVision()
         self.physics = RoulettePhysics()
+        
+        # Initialize TTS system
+        self.tts = get_tts_system()
         
         self.is_running = False
         self.predictions = []
@@ -189,8 +193,11 @@ class RoulettePredictionSystem:
                         
                         # Print prediction if confidence is reasonable
                         if confidence > 0.4:  # Lower threshold for more feedback
-                            print(f"🎯 PREDICTION #{self.total_predictions}: Number {predicted_number} "
-                                  f"(Confidence: {confidence:.2f}, Speed: {prediction['ball_speed']:.1f})")
+                            prediction_text = f"PREDICTION #{self.total_predictions}: Number {predicted_number} (Confidence: {confidence:.2f}, Speed: {prediction['ball_speed']:.1f})"
+                            print(f"🎯 {prediction_text}")
+                            
+                            # Announce prediction via TTS
+                            self.tts.speak_prediction(f"Number {predicted_number}", confidence)
         
         # Create enhanced visualization
         vis_frame = self.vision.visualize_detection(frame)
@@ -310,6 +317,9 @@ class RoulettePredictionSystem:
                 await self.stream_capture.cleanup()
             else:
                 self.stream_capture.cleanup()
+        
+        # Cleanup TTS system
+        cleanup_tts()
         
         # Print comprehensive final statistics
         total_time = time.time() - self.start_time
