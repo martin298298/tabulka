@@ -37,13 +37,10 @@ Thumbs.db
 
 # Project specific
 /tmp/
-*.png
-*.jpg
-*.jpeg
-*.mp4
-*.avi
 test_images/
 output/
+test_gui_screenshot.py
+capture_gui_screenshots.py
 
 # Playwright
 ms-playwright/
