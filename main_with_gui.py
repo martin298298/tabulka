@@ -22,7 +22,7 @@ class RoulettePredictionGUI:
         """Initialize the GUI application."""
         self.root = tk.Tk()
         self.root.title("🎰 Enhanced Roulette Prediction System")
-        self.root.geometry("900x700")
+        self.root.geometry("1200x800")  # Increased width for sidebar
         
         # Configure style
         self.style = ttk.Style()
@@ -32,6 +32,7 @@ class RoulettePredictionGUI:
         self.prediction_system = None
         self.system_thread = None
         self.is_running = False
+        self.current_section = "prediction"  # Track current active section
         
         self._create_interface()
         self._load_default_settings()
@@ -41,23 +42,116 @@ class RoulettePredictionGUI:
     
     def _create_interface(self):
         """Create the main GUI interface."""
-        # Create main notebook for tabs
-        self.notebook = ttk.Notebook(self.root)
-        self.notebook.pack(fill='both', expand=True, padx=10, pady=10)
+        # Create main container with horizontal layout
+        main_container = ttk.Frame(self.root)
+        main_container.pack(fill='both', expand=True)
         
-        # Main control tab
-        self._create_main_tab()
+        # Create navigation sidebar
+        self._create_sidebar(main_container)
         
-        # TTS settings tab
-        self._create_tts_tab()
+        # Create main content area
+        self.content_frame = ttk.Frame(main_container)
+        self.content_frame.pack(side='right', fill='both', expand=True, padx=(0, 10), pady=10)
         
-        # Status/log tab
-        self._create_status_tab()
+        # Create content sections (initially hidden)
+        self.sections = {}
+        self._create_prediction_section()
+        self._create_pricing_section()
+        self._create_podcast_section()
+        self._create_tts_section()
+        self._create_status_section()
+        
+        # Show initial section
+        self._show_section("prediction")
     
-    def _create_main_tab(self):
-        """Create the main control interface."""
-        main_frame = ttk.Frame(self.notebook)
-        self.notebook.add(main_frame, text="🎯 Prediction System")
+    def _create_sidebar(self, parent):
+        """Create the navigation sidebar."""
+        # Sidebar frame
+        sidebar_frame = ttk.Frame(parent, width=200)
+        sidebar_frame.pack(side='left', fill='y', padx=(10, 0), pady=10)
+        sidebar_frame.pack_propagate(False)  # Maintain fixed width
+        
+        # Sidebar title
+        title_label = ttk.Label(sidebar_frame, text="🎰 Navigation", 
+                               font=('Arial', 14, 'bold'))
+        title_label.pack(pady=(0, 20))
+        
+        # Navigation buttons
+        self.nav_buttons = {}
+        nav_items = [
+            ("prediction", "🎯 Prediction System", "Main roulette prediction interface"),
+            ("pricing", "💰 Pricing", "Pricing information and plans"),
+            ("podcast", "🎙️ Podcast", "Podcast generation and management"),
+            ("tts", "🔊 TTS Settings", "Text-to-speech configuration"),
+            ("status", "📊 Status & Logs", "System status and logs")
+        ]
+        
+        for section_id, title, description in nav_items:
+            # Create button frame
+            btn_frame = ttk.Frame(sidebar_frame)
+            btn_frame.pack(fill='x', pady=(0, 5))
+            
+            # Navigation button
+            btn = ttk.Button(btn_frame, text=title,
+                           command=lambda s=section_id: self._show_section(s),
+                           width=25)
+            btn.pack(fill='x')
+            self.nav_buttons[section_id] = btn
+            
+            # Description label
+            desc_label = ttk.Label(btn_frame, text=description, 
+                                 font=('Arial', 8), foreground='gray')
+            desc_label.pack(anchor='w', padx=(5, 0))
+        
+        # Separator
+        ttk.Separator(sidebar_frame, orient='horizontal').pack(fill='x', pady=20)
+        
+        # Quick actions
+        quick_frame = ttk.LabelFrame(sidebar_frame, text="Quick Actions", padding="10")
+        quick_frame.pack(fill='x', pady=(0, 10))
+        
+        quick_test_btn = ttk.Button(quick_frame, text="🧪 Test System",
+                                   command=self._test_components)
+        quick_test_btn.pack(fill='x', pady=(0, 5))
+        
+        quick_tts_btn = ttk.Button(quick_frame, text="🎵 Test TTS",
+                                  command=self._quick_tts_test)
+        quick_tts_btn.pack(fill='x')
+    
+    def _show_section(self, section_id):
+        """Show the specified section and hide others."""
+        # Hide all sections
+        for section_frame in self.sections.values():
+            section_frame.pack_forget()
+        
+        # Show selected section
+        if section_id in self.sections:
+            self.sections[section_id].pack(fill='both', expand=True)
+            self.current_section = section_id
+            
+            # Update button styles to show active section
+            for btn_id, btn in self.nav_buttons.items():
+                if btn_id == section_id:
+                    btn.configure(style='Accent.TButton')
+                else:
+                    btn.configure(style='TButton')
+    
+    def _quick_tts_test(self):
+        """Quick TTS test function."""
+        def test_thread():
+            try:
+                tts = get_tts_system()
+                tts.speak("Quick TTS test from navigation sidebar")
+                self._log("Quick TTS test completed")
+            except Exception as e:
+                self._log(f"TTS test failed: {e}")
+        
+        threading.Thread(target=test_thread, daemon=True).start()
+    
+    def _create_prediction_section(self):
+        """Create the main prediction system section."""
+        main_frame = ttk.Frame(self.content_frame)
+        self.sections["prediction"] = main_frame
         
         # Title
         title_label = ttk.Label(main_frame, text="🎰 Enhanced Roulette Prediction System", 
@@ -145,17 +239,181 @@ class RoulettePredictionGUI:
         ttk.Label(metrics_frame, textvariable=self.detection_var).pack(side='left', padx=(20, 0))
         ttk.Label(metrics_frame, textvariable=self.prediction_var).pack(side='left', padx=(20, 0))
     
-    def _create_tts_tab(self):
-        """Create the TTS settings tab."""
-        tts_frame = ttk.Frame(self.notebook)
-        self.notebook.add(tts_frame, text="🔊 TTS Settings")
+    def _create_pricing_section(self):
+        """Create the pricing section."""
+        pricing_frame = ttk.Frame(self.content_frame)
+        self.sections["pricing"] = pricing_frame
+        
+        # Title
+        title_label = ttk.Label(pricing_frame, text="💰 Pricing Plans", 
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=(20, 30))
+        
+        # Description
+        desc_label = ttk.Label(pricing_frame, 
+                              text="Choose the perfect plan for your roulette prediction needs",
+                              font=('Arial', 12))
+        desc_label.pack(pady=(0, 30))
+        
+        # Pricing cards container
+        cards_frame = ttk.Frame(pricing_frame)
+        cards_frame.pack(fill='both', expand=True, padx=20)
+        
+        # Basic Plan
+        basic_frame = ttk.LabelFrame(cards_frame, text="Basic Plan", padding="20")
+        basic_frame.pack(side='left', fill='both', expand=True, padx=(0, 10))
+        
+        ttk.Label(basic_frame, text="$9.99/month", font=('Arial', 14, 'bold')).pack()
+        ttk.Label(basic_frame, text="Perfect for beginners").pack(pady=(5, 15))
+        
+        basic_features = [
+            "✓ Basic prediction algorithm",
+            "✓ Standard TTS voices",
+            "✓ Up to 100 predictions/day",
+            "✓ Email support"
+        ]
+        for feature in basic_features:
+            ttk.Label(basic_frame, text=feature).pack(anchor='w', pady=2)
+        
+        ttk.Button(basic_frame, text="Choose Basic", 
+                  command=lambda: self._select_plan("basic")).pack(pady=(15, 0))
+        
+        # Pro Plan
+        pro_frame = ttk.LabelFrame(cards_frame, text="Pro Plan ⭐", padding="20")
+        pro_frame.pack(side='left', fill='both', expand=True, padx=5)
+        
+        ttk.Label(pro_frame, text="$29.99/month", font=('Arial', 14, 'bold')).pack()
+        ttk.Label(pro_frame, text="Most popular choice").pack(pady=(5, 15))
+        
+        pro_features = [
+            "✓ Advanced prediction algorithm",
+            "✓ Premium TTS voices",
+            "✓ Unlimited predictions",
+            "✓ Real-time analytics",
+            "✓ Priority support"
+        ]
+        for feature in pro_features:
+            ttk.Label(pro_frame, text=feature).pack(anchor='w', pady=2)
+        
+        ttk.Button(pro_frame, text="Choose Pro", style='Accent.TButton',
+                  command=lambda: self._select_plan("pro")).pack(pady=(15, 0))
+        
+        # Enterprise Plan
+        enterprise_frame = ttk.LabelFrame(cards_frame, text="Enterprise Plan", padding="20")
+        enterprise_frame.pack(side='left', fill='both', expand=True, padx=(10, 0))
+        
+        ttk.Label(enterprise_frame, text="$99.99/month", font=('Arial', 14, 'bold')).pack()
+        ttk.Label(enterprise_frame, text="For professionals").pack(pady=(5, 15))
+        
+        enterprise_features = [
+            "✓ AI-powered predictions",
+            "✓ Custom TTS voices",
+            "✓ API access",
+            "✓ Multi-table support",
+            "✓ 24/7 phone support",
+            "✓ Custom integrations"
+        ]
+        for feature in enterprise_features:
+            ttk.Label(enterprise_frame, text=feature).pack(anchor='w', pady=2)
+        
+        ttk.Button(enterprise_frame, text="Choose Enterprise",
+                  command=lambda: self._select_plan("enterprise")).pack(pady=(15, 0))
+    
+    def _create_podcast_section(self):
+        """Create the podcast generation section."""
+        podcast_frame = ttk.Frame(self.content_frame)
+        self.sections["podcast"] = podcast_frame
+        
+        # Title
+        title_label = ttk.Label(podcast_frame, text="🎙️ Podcast Generation", 
+                               font=('Arial', 16, 'bold'))
+        title_label.pack(pady=(20, 30))
+        
+        # Description
+        desc_label = ttk.Label(podcast_frame, 
+                              text="Generate engaging podcasts about roulette strategies and predictions",
+                              font=('Arial', 12))
+        desc_label.pack(pady=(0, 30))
+        
+        # Podcast creation form
+        form_frame = ttk.LabelFrame(podcast_frame, text="Create New Podcast", padding="20")
+        form_frame.pack(fill='x', padx=20, pady=(0, 20))
+        
+        # Podcast title
+        title_input_frame = ttk.Frame(form_frame)
+        title_input_frame.pack(fill='x', pady=(0, 10))
+        ttk.Label(title_input_frame, text="Podcast Title:").pack(side='left')
+        self.podcast_title_var = tk.StringVar(value="Roulette Strategies Weekly")
+        ttk.Entry(title_input_frame, textvariable=self.podcast_title_var, width=50).pack(side='left', padx=(10, 0), fill='x', expand=True)
+        
+        # Topic selection
+        topic_frame = ttk.Frame(form_frame)
+        topic_frame.pack(fill='x', pady=(0, 10))
+        ttk.Label(topic_frame, text="Topic:").pack(side='left')
+        self.podcast_topic_var = tk.StringVar(value="prediction_strategies")
+        topics = [
+            ("prediction_strategies", "Prediction Strategies"),
+            ("betting_systems", "Betting Systems"),
+            ("risk_management", "Risk Management"),
+            ("psychology", "Psychology of Gambling"),
+            ("technology", "Technology in Gaming")
+        ]
+        topic_combo = ttk.Combobox(topic_frame, textvariable=self.podcast_topic_var, 
+                                  values=[topic[0] for topic in topics], state='readonly')
+        topic_combo.pack(side='left', padx=(10, 0), fill='x', expand=True)
+        
+        # Duration
+        duration_frame = ttk.Frame(form_frame)
+        duration_frame.pack(fill='x', pady=(0, 10))
+        ttk.Label(duration_frame, text="Duration:").pack(side='left')
+        self.podcast_duration_var = tk.StringVar(value="15")
+        duration_spin = ttk.Spinbox(duration_frame, from_=5, to=60, textvariable=self.podcast_duration_var, width=10)
+        duration_spin.pack(side='left', padx=(10, 5))
+        ttk.Label(duration_frame, text="minutes").pack(side='left')
+        
+        # Voice selection
+        voice_frame = ttk.Frame(form_frame)
+        voice_frame.pack(fill='x', pady=(0, 15))
+        ttk.Label(voice_frame, text="Voice:").pack(side='left')
+        self.podcast_voice_var = tk.StringVar(value="professional_male")
+        voices = ["professional_male", "professional_female", "casual_male", "casual_female"]
+        voice_combo = ttk.Combobox(voice_frame, textvariable=self.podcast_voice_var, 
+                                  values=voices, state='readonly')
+        voice_combo.pack(side='left', padx=(10, 0), fill='x', expand=True)
+        
+        # Generate button
+        ttk.Button(form_frame, text="🎵 Generate Podcast", style='Accent.TButton',
+                  command=self._generate_podcast).pack()
+        
+        # Recent podcasts
+        recent_frame = ttk.LabelFrame(podcast_frame, text="Recent Podcasts", padding="20")
+        recent_frame.pack(fill='both', expand=True, padx=20)
+        
+        # Sample recent podcasts
+        recent_podcasts = [
+            "🎙️ Roulette Strategies Weekly - Episode 1 (15 min)",
+            "🎙️ Advanced Betting Systems - Episode 2 (22 min)",
+            "🎙️ Psychology of Winning - Episode 3 (18 min)"
+        ]
+        
+        for podcast in recent_podcasts:
+            podcast_item_frame = ttk.Frame(recent_frame)
+            podcast_item_frame.pack(fill='x', pady=2)
+            ttk.Label(podcast_item_frame, text=podcast).pack(side='left')
+            ttk.Button(podcast_item_frame, text="▶️ Play", width=8).pack(side='right', padx=(0, 5))
+            ttk.Button(podcast_item_frame, text="📥 Download", width=10).pack(side='right', padx=(0, 5))
+    
+    def _create_tts_section(self):
+        """Create the TTS settings section."""
+        tts_frame = ttk.Frame(self.content_frame)
+        self.sections["tts"] = tts_frame
         
         self.tts_gui = TTSSettingsGUI(tts_frame, self._on_tts_setting_change)
     
-    def _create_status_tab(self):
-        """Create the status/log tab."""
-        status_frame = ttk.Frame(self.notebook)
-        self.notebook.add(status_frame, text="📊 Status & Logs")
+    def _create_status_section(self):
+        """Create the status/log section."""
+        status_frame = ttk.Frame(self.content_frame)
+        self.sections["status"] = status_frame
         
         # Log display
         log_frame = ttk.LabelFrame(status_frame, text="System Logs", padding="10")
@@ -185,9 +443,42 @@ class RoulettePredictionGUI:
                                 command=self._save_logs)
         save_button.pack(side='left', padx=(10, 0))
     
+    def _select_plan(self, plan_type):
+        """Handle plan selection."""
+        self._log(f"Selected {plan_type} plan")
+        messagebox.showinfo("Plan Selected", 
+                           f"You have selected the {plan_type.title()} plan.\n"
+                           f"This is a demonstration - no actual payment will be processed.")
+    
+    def _generate_podcast(self):
+        """Generate a new podcast."""
+        title = self.podcast_title_var.get()
+        topic = self.podcast_topic_var.get()
+        duration = self.podcast_duration_var.get()
+        voice = self.podcast_voice_var.get()
+        
+        self._log(f"Generating podcast: {title} ({duration} min, {topic}, {voice})")
+        
+        def generate_thread():
+            try:
+                # Simulate podcast generation
+                for i in range(1, 6):
+                    time.sleep(1)
+                    self.root.after(0, lambda i=i: self._log(f"Generating podcast... {i*20}%"))
+                
+                self.root.after(0, lambda: self._log("Podcast generation completed!"))
+                self.root.after(0, lambda: messagebox.showinfo("Success", 
+                    f"Podcast '{title}' has been generated successfully!\n"
+                    f"Duration: {duration} minutes\nTopic: {topic}\nVoice: {voice}"))
+                
+            except Exception as e:
+                self.root.after(0, lambda: self._log(f"Podcast generation failed: {e}"))
+        
+        threading.Thread(target=generate_thread, daemon=True).start()
+    
     def _load_default_settings(self):
         """Load default configuration settings."""
-        # Settings loaded in _create_main_tab with default values
+        # Settings loaded in _create_prediction_section with default values
         pass
     
     def _setup_logging(self):
