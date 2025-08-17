@@ -1,0 +1,779 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎙️ Podcast Generation - Roulette Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .podcast-studio {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 2rem;
+            border-radius: 12px;
+            margin: 2rem 0;
+            position: relative;
+            overflow: hidden;
+        }
+        
+        .podcast-studio::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100"><circle cx="50" cy="50" r="2" fill="rgba(255,255,255,0.1)"/></svg>');
+            opacity: 0.3;
+            z-index: 0;
+        }
+        
+        .podcast-content {
+            position: relative;
+            z-index: 1;
+        }
+        
+        .microphone-icon {
+            font-size: 4rem;
+            text-align: center;
+            margin: 1rem 0;
+            animation: pulse 2s infinite;
+        }
+        
+        .audio-controls {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .waveform {
+            display: flex;
+            align-items: end;
+            justify-content: center;
+            height: 80px;
+            gap: 2px;
+            margin: 1rem 0;
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 8px;
+            padding: 10px;
+        }
+        
+        .waveform-bar {
+            background: linear-gradient(to top, #ff6b6b, #4ecdc4);
+            width: 4px;
+            border-radius: 2px;
+            animation: waveform 1.5s infinite;
+            transition: height 0.3s ease;
+        }
+        
+        .waveform-bar:nth-child(odd) {
+            animation-delay: 0.1s;
+        }
+        
+        .waveform-bar:nth-child(even) {
+            animation-delay: 0.3s;
+        }
+        
+        @keyframes waveform {
+            0%, 100% { height: 20%; }
+            50% { height: 100%; }
+        }
+        
+        .podcast-options {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 1.5rem;
+            margin: 2rem 0;
+        }
+        
+        .option-card {
+            background: white;
+            color: var(--text-primary);
+            padding: 1.5rem;
+            border-radius: 8px;
+            box-shadow: var(--shadow);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .option-card:hover {
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-hover);
+        }
+        
+        .option-card.selected {
+            border: 2px solid var(--primary-color);
+            transform: translateY(-4px);
+        }
+        
+        .option-title {
+            font-size: 1.2rem;
+            font-weight: bold;
+            margin-bottom: 0.5rem;
+            color: var(--primary-color);
+        }
+        
+        .option-description {
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            margin-bottom: 1rem;
+        }
+        
+        .option-features {
+            list-style: none;
+            padding: 0;
+        }
+        
+        .option-features li {
+            padding: 0.2rem 0;
+            font-size: 0.85rem;
+        }
+        
+        .option-features li::before {
+            content: '✓';
+            color: var(--success-color);
+            font-weight: bold;
+            margin-right: 0.5rem;
+        }
+        
+        .generation-progress {
+            background: rgba(255, 255, 255, 0.1);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: none;
+        }
+        
+        .generation-progress.active {
+            display: block;
+        }
+        
+        .progress-step {
+            display: flex;
+            align-items: center;
+            margin: 0.8rem 0;
+            padding: 0.5rem;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 4px;
+        }
+        
+        .progress-step.completed {
+            background: rgba(40, 167, 69, 0.2);
+        }
+        
+        .progress-step.active {
+            background: rgba(255, 193, 7, 0.2);
+        }
+        
+        .step-icon {
+            margin-right: 1rem;
+            font-size: 1.2rem;
+        }
+        
+        .step-text {
+            flex: 1;
+        }
+        
+        .step-duration {
+            font-size: 0.8rem;
+            opacity: 0.8;
+        }
+        
+        .download-section {
+            background: var(--card-background);
+            color: var(--text-primary);
+            padding: 2rem;
+            border-radius: 8px;
+            margin: 2rem 0;
+            text-align: center;
+            display: none;
+        }
+        
+        .download-section.active {
+            display: block;
+            animation: slideIn 0.5s ease;
+        }
+        
+        @keyframes slideIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .podcast-preview {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .preview-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 1rem;
+        }
+        
+        .preview-artwork {
+            width: 60px;
+            height: 60px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 1.5rem;
+            margin-right: 1rem;
+        }
+        
+        .preview-info h4 {
+            margin: 0 0 0.3rem 0;
+            color: var(--text-primary);
+        }
+        
+        .preview-info p {
+            margin: 0;
+            color: var(--text-secondary);
+            font-size: 0.9rem;
+        }
+        
+        .audio-player {
+            background: #333;
+            color: white;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        
+        .play-button {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: var(--primary-color);
+            border: none;
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: background 0.3s ease;
+        }
+        
+        .play-button:hover {
+            background: var(--secondary-color);
+        }
+        
+        .audio-timeline {
+            flex: 1;
+            height: 4px;
+            background: #555;
+            border-radius: 2px;
+            position: relative;
+            cursor: pointer;
+        }
+        
+        .audio-progress {
+            height: 100%;
+            background: var(--primary-color);
+            border-radius: 2px;
+            width: 0%;
+            transition: width 0.1s ease;
+        }
+        
+        .audio-time {
+            font-size: 0.8rem;
+            min-width: 80px;
+            text-align: center;
+        }
+        
+        .sharing-options {
+            display: flex;
+            gap: 1rem;
+            justify-content: center;
+            margin: 1.5rem 0;
+            flex-wrap: wrap;
+        }
+        
+        .share-button {
+            padding: 0.8rem 1.5rem;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 500;
+            transition: all 0.3s ease;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        
+        .share-spotify {
+            background: #1db954;
+            color: white;
+        }
+        
+        .share-apple {
+            background: #fc3c44;
+            color: white;
+        }
+        
+        .share-google {
+            background: #ff6600;
+            color: white;
+        }
+        
+        .share-rss {
+            background: #ff9800;
+            color: white;
+        }
+        
+        .share-button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        .advanced-settings {
+            background: rgba(255, 255, 255, 0.05);
+            padding: 1.5rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .settings-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>🎙️ Podcast Generation</h1>
+            <p class="subtitle">Create professional podcasts from roulette prediction data</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="index.html">🏠 Home</a></li>
+                <li><a href="scrolling.html">📊 Live Data</a></li>
+                <li><a href="references.html">📚 References</a></li>
+                <li><a href="podcast.html" class="active">🎙️ Podcast</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- Podcast Studio Interface -->
+        <div class="podcast-studio">
+            <div class="podcast-content">
+                <div class="microphone-icon">🎙️</div>
+                <h2 style="text-align: center; margin: 0;">Roulette Prediction Podcast Studio</h2>
+                <p style="text-align: center; opacity: 0.9;">Transform your prediction data into engaging audio content</p>
+                
+                <div class="waveform">
+                    <div class="waveform-bar" style="height: 40%;"></div>
+                    <div class="waveform-bar" style="height: 60%;"></div>
+                    <div class="waveform-bar" style="height: 80%;"></div>
+                    <div class="waveform-bar" style="height: 45%;"></div>
+                    <div class="waveform-bar" style="height: 90%;"></div>
+                    <div class="waveform-bar" style="height: 70%;"></div>
+                    <div class="waveform-bar" style="height: 55%;"></div>
+                    <div class="waveform-bar" style="height: 85%;"></div>
+                    <div class="waveform-bar" style="height: 35%;"></div>
+                    <div class="waveform-bar" style="height: 75%;"></div>
+                    <div class="waveform-bar" style="height: 50%;"></div>
+                    <div class="waveform-bar" style="height: 95%;"></div>
+                    <div class="waveform-bar" style="height: 65%;"></div>
+                    <div class="waveform-bar" style="height: 30%;"></div>
+                    <div class="waveform-bar" style="height: 80%;"></div>
+                </div>
+
+                <div class="audio-controls">
+                    <div class="form-group">
+                        <label style="color: white;">Podcast Title:</label>
+                        <input type="text" id="podcast-title" class="form-control" 
+                               value="Roulette Predictions Analysis - Session {{date}}" 
+                               style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                    </div>
+                    
+                    <div class="grid grid-2">
+                        <div class="form-group">
+                            <label style="color: white;">Voice:</label>
+                            <select id="podcast-voice" class="form-control" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                                <option value="narrator">Professional Narrator</option>
+                                <option value="technical">Technical Expert</option>
+                                <option value="casual">Casual Commentator</option>
+                                <option value="news">News Reporter</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label style="color: white;">Duration Target:</label>
+                            <select id="podcast-duration" class="form-control" style="background: rgba(255,255,255,0.2); border: 1px solid rgba(255,255,255,0.3); color: white;">
+                                <option value="short">Short (5-10 min)</option>
+                                <option value="medium">Medium (15-20 min)</option>
+                                <option value="long">Long (30-45 min)</option>
+                                <option value="full">Full Analysis (60+ min)</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Podcast Format Options -->
+        <div class="card">
+            <h2>📻 Choose Podcast Format</h2>
+            <div class="podcast-options">
+                <div class="option-card" data-format="summary" onclick="selectPodcastFormat(this)">
+                    <div class="option-title">📊 Prediction Summary</div>
+                    <div class="option-description">Concise overview of recent predictions with key statistics</div>
+                    <ul class="option-features">
+                        <li>Recent prediction results</li>
+                        <li>Accuracy statistics</li>
+                        <li>Performance metrics</li>
+                        <li>Quick insights</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card selected" data-format="analysis" onclick="selectPodcastFormat(this)">
+                    <div class="option-title">🔍 Deep Analysis</div>
+                    <div class="option-description">Detailed technical analysis with explanations</div>
+                    <ul class="option-features">
+                        <li>Algorithm explanations</li>
+                        <li>Pattern analysis</li>
+                        <li>Technical insights</li>
+                        <li>Confidence factors</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card" data-format="tutorial" onclick="selectPodcastFormat(this)">
+                    <div class="option-title">🎓 Educational Tutorial</div>
+                    <div class="option-description">Learn about roulette prediction techniques</div>
+                    <ul class="option-features">
+                        <li>Physics explanations</li>
+                        <li>Computer vision basics</li>
+                        <li>Mathematical concepts</li>
+                        <li>Beginner-friendly</li>
+                    </ul>
+                </div>
+                
+                <div class="option-card" data-format="news" onclick="selectPodcastFormat(this)">
+                    <div class="option-title">📰 Prediction News</div>
+                    <div class="option-description">News-style reporting of prediction events</div>
+                    <ul class="option-features">
+                        <li>Breaking down results</li>
+                        <li>System updates</li>
+                        <li>Performance trends</li>
+                        <li>Future outlook</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Advanced Settings -->
+        <div class="card">
+            <h2>⚙️ Advanced Settings</h2>
+            <div class="advanced-settings">
+                <div class="settings-grid">
+                    <div class="form-group">
+                        <label style="color: white;">Audio Quality:</label>
+                        <select id="audio-quality" class="form-control">
+                            <option value="standard">Standard (128 kbps)</option>
+                            <option value="high" selected>High (320 kbps)</option>
+                            <option value="lossless">Lossless (FLAC)</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="color: white;">Speaking Rate:</label>
+                        <input type="range" id="speaking-rate" class="form-control" 
+                               min="0.5" max="2" step="0.1" value="1">
+                        <small style="color: rgba(255,255,255,0.8);">Current: <span id="rate-display">1.0x</span></small>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="color: white;">Background Music:</label>
+                        <select id="background-music" class="form-control">
+                            <option value="none">None</option>
+                            <option value="ambient">Ambient</option>
+                            <option value="tech">Tech/Electronic</option>
+                            <option value="classical">Classical</option>
+                        </select>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label style="color: white;">Include Timestamps:</label>
+                        <label style="color: white;">
+                            <input type="checkbox" id="include-timestamps" checked> Yes
+                        </label>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label style="color: white;">
+                        <input type="checkbox" id="filter-brackets" checked> 
+                        Filter technical debug information
+                    </label>
+                </div>
+                
+                <div class="form-group">
+                    <label style="color: white;">
+                        <input type="checkbox" id="add-intro" checked> 
+                        Include introduction and outro
+                    </label>
+                </div>
+            </div>
+        </div>
+
+        <!-- Generation Controls -->
+        <div class="card">
+            <h2>🚀 Generate Podcast</h2>
+            <div id="podcast-status" class="status status-info">Ready to generate podcast</div>
+            
+            <div style="text-align: center; margin: 2rem 0;">
+                <button id="generate-podcast" class="btn btn-primary" style="font-size: 1.2rem; padding: 1rem 2rem;">
+                    🎙️ Generate Podcast
+                </button>
+            </div>
+            
+            <!-- Progress Section -->
+            <div class="generation-progress" id="generation-progress">
+                <h3 style="color: white; margin-bottom: 1rem;">🔄 Generation Progress</h3>
+                
+                <div class="progress-step" id="step-data">
+                    <div class="step-icon">📊</div>
+                    <div class="step-text">Collecting prediction data...</div>
+                    <div class="step-duration">~10s</div>
+                </div>
+                
+                <div class="progress-step" id="step-script">
+                    <div class="step-icon">📝</div>
+                    <div class="step-text">Generating script content...</div>
+                    <div class="step-duration">~15s</div>
+                </div>
+                
+                <div class="progress-step" id="step-audio">
+                    <div class="step-icon">🔊</div>
+                    <div class="step-text">Synthesizing audio...</div>
+                    <div class="step-duration">~30s</div>
+                </div>
+                
+                <div class="progress-step" id="step-music">
+                    <div class="step-icon">🎵</div>
+                    <div class="step-text">Adding background music...</div>
+                    <div class="step-duration">~5s</div>
+                </div>
+                
+                <div class="progress-step" id="step-final">
+                    <div class="step-icon">✅</div>
+                    <div class="step-text">Finalizing podcast...</div>
+                    <div class="step-duration">~5s</div>
+                </div>
+                
+                <div class="progress" style="margin-top: 1rem;">
+                    <div class="progress-bar podcast-progress" style="width: 0%;"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Download Section -->
+        <div class="download-section" id="download-area">
+            <!-- Content will be populated by JavaScript -->
+        </div>
+
+        <!-- Sample Podcast Preview -->
+        <div class="card">
+            <h2>🎧 Sample Podcast Preview</h2>
+            <div class="podcast-preview">
+                <div class="preview-header">
+                    <div class="preview-artwork">🎰</div>
+                    <div class="preview-info">
+                        <h4>Roulette Predictions Analysis - Demo Session</h4>
+                        <p>Generated on {{current_date}} • 12:34 duration • High quality</p>
+                    </div>
+                </div>
+                
+                <div class="audio-player">
+                    <button class="play-button" onclick="toggleAudioPreview()">
+                        <span id="play-icon">▶️</span>
+                    </button>
+                    <div class="audio-timeline" onclick="seekAudio(event)">
+                        <div class="audio-progress" id="audio-progress"></div>
+                    </div>
+                    <div class="audio-time">
+                        <span id="current-time">0:00</span> / <span id="total-time">12:34</span>
+                    </div>
+                </div>
+                
+                <p style="margin-top: 1rem; font-size: 0.9rem; color: var(--text-secondary);">
+                    <strong>Sample content:</strong> "Welcome to today's roulette prediction analysis. 
+                    In this session, we analyzed 47 spins with an overall accuracy rate of 73%. 
+                    Our computer vision system detected the wheel with 85% confidence, and the ball tracking 
+                    algorithm maintained consistent performance throughout the session..."
+                </p>
+            </div>
+        </div>
+
+        <!-- Sharing and Distribution -->
+        <div class="card">
+            <h2>📤 Sharing & Distribution</h2>
+            <p>Once your podcast is generated, you can distribute it through various channels:</p>
+            
+            <div class="sharing-options">
+                <a href="#" class="share-button share-spotify">
+                    🎵 Spotify
+                </a>
+                <a href="#" class="share-button share-apple">
+                    🍎 Apple Podcasts
+                </a>
+                <a href="#" class="share-button share-google">
+                    🔍 Google Podcasts
+                </a>
+                <a href="#" class="share-button share-rss">
+                    📡 RSS Feed
+                </a>
+            </div>
+            
+            <div class="grid grid-2">
+                <div>
+                    <h3>Direct Download Options</h3>
+                    <ul>
+                        <li><strong>MP3:</strong> Universal compatibility, smaller file size</li>
+                        <li><strong>M4A:</strong> Better quality, Apple ecosystem optimized</li>
+                        <li><strong>FLAC:</strong> Lossless quality, larger file size</li>
+                        <li><strong>WAV:</strong> Uncompressed, maximum quality</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Automatic Features</h3>
+                    <ul>
+                        <li><strong>Metadata:</strong> Title, description, tags automatically added</li>
+                        <li><strong>Artwork:</strong> Generated podcast cover art</li>
+                        <li><strong>Chapters:</strong> Automatic chapter markers</li>
+                        <li><strong>Transcription:</strong> Full text transcript included</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Analytics and Insights -->
+        <div class="card">
+            <h2>📈 Podcast Analytics</h2>
+            <div class="grid grid-3">
+                <div class="metric-card">
+                    <div class="metric-value">23</div>
+                    <div class="metric-label">Podcasts Generated</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">4.2h</div>
+                    <div class="metric-label">Total Audio Created</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value">89%</div>
+                    <div class="metric-label">User Satisfaction</div>
+                </div>
+            </div>
+            
+            <h3>Recent Podcasts</h3>
+            <ul>
+                <li><strong>Session Analysis #23</strong> - Generated 2 hours ago (15:34 duration)</li>
+                <li><strong>Weekly Prediction Summary</strong> - Generated yesterday (22:17 duration)</li>
+                <li><strong>Algorithm Deep Dive</strong> - Generated 3 days ago (45:12 duration)</li>
+                <li><strong>Beginner's Guide to Roulette Prediction</strong> - Generated 1 week ago (38:56 duration)</li>
+            </ul>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>🎙️ Professional podcast generation for educational and research purposes.</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="scrolling.html">Live Data</a>
+                <a href="references.html">Documentation</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Page-specific JavaScript for podcast functionality
+        let selectedFormat = 'analysis';
+        let isPlaying = false;
+        let audioProgressTimer;
+        
+        function selectPodcastFormat(element) {
+            // Remove selected class from all cards
+            document.querySelectorAll('.option-card').forEach(card => {
+                card.classList.remove('selected');
+            });
+            
+            // Add selected class to clicked card
+            element.classList.add('selected');
+            selectedFormat = element.dataset.format;
+            
+            showToast(`Selected format: ${element.querySelector('.option-title').textContent}`, 'info');
+        }
+        
+        function toggleAudioPreview() {
+            const playIcon = document.getElementById('play-icon');
+            const progressBar = document.getElementById('audio-progress');
+            
+            if (!isPlaying) {
+                playIcon.textContent = '⏸️';
+                isPlaying = true;
+                showToast('Playing preview audio...', 'info');
+                
+                // Simulate audio progress
+                let progress = 0;
+                audioProgressTimer = setInterval(() => {
+                    progress += 1;
+                    progressBar.style.width = progress + '%';
+                    
+                    if (progress >= 100) {
+                        clearInterval(audioProgressTimer);
+                        playIcon.textContent = '▶️';
+                        isPlaying = false;
+                        progressBar.style.width = '0%';
+                    }
+                }, 100);
+            } else {
+                playIcon.textContent = '▶️';
+                isPlaying = false;
+                clearInterval(audioProgressTimer);
+                showToast('Audio paused', 'info');
+            }
+        }
+        
+        function seekAudio(event) {
+            const timeline = event.currentTarget;
+            const rect = timeline.getBoundingClientRect();
+            const clickX = event.clientX - rect.left;
+            const percentage = (clickX / rect.width) * 100;
+            
+            document.getElementById('audio-progress').style.width = percentage + '%';
+            showToast(`Seeked to ${Math.round(percentage)}%`, 'info');
+        }
+        
+        // Update speaking rate display
+        document.getElementById('speaking-rate').addEventListener('input', function(e) {
+            document.getElementById('rate-display').textContent = e.target.value + 'x';
+        });
+        
+        // Replace date placeholders
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentDate = new Date().toLocaleDateString();
+            document.body.innerHTML = document.body.innerHTML.replace(/\{\{date\}\}/g, currentDate);
+            document.body.innerHTML = document.body.innerHTML.replace(/\{\{current_date\}\}/g, currentDate);
+        });
+    </script>
+</body>
+</html>

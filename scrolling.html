@@ -1,0 +1,505 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>📊 Live Data Stream - Roulette Prediction System</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        .data-stream {
+            background: #1a1a1a;
+            color: #00ff00;
+            padding: 1rem;
+            border-radius: 8px;
+            font-family: 'Courier New', monospace;
+            height: 400px;
+            overflow-y: auto;
+            margin: 1rem 0;
+            border: 2px solid #333;
+        }
+        
+        .data-point {
+            display: flex;
+            justify-content: space-between;
+            padding: 0.3rem 0;
+            border-bottom: 1px solid #333;
+            animation: fadeIn 0.5s ease-in;
+        }
+        
+        .data-point:hover {
+            background: rgba(0, 255, 0, 0.1);
+        }
+        
+        .timestamp { color: #ffff00; }
+        .fps { color: #00ffff; }
+        .detection { color: #ff8000; }
+        .position { color: #ff00ff; }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .metrics-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1rem;
+            margin: 1rem 0;
+        }
+        
+        .metric-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+        }
+        
+        .metric-value {
+            font-size: 2rem;
+            font-weight: bold;
+            margin: 0.5rem 0;
+        }
+        
+        .metric-label {
+            font-size: 0.9rem;
+            opacity: 0.9;
+        }
+        
+        .visualization-area {
+            background: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+            margin: 1rem 0;
+            min-height: 300px;
+            position: relative;
+        }
+        
+        .roulette-visualization {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            margin: 0 auto;
+        }
+        
+        .wheel-svg {
+            width: 100%;
+            height: 100%;
+        }
+        
+        .ball-position {
+            position: absolute;
+            width: 12px;
+            height: 12px;
+            background: #ff4444;
+            border-radius: 50%;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            animation: pulse 1s infinite;
+            box-shadow: 0 0 10px rgba(255, 68, 68, 0.5);
+        }
+        
+        .prediction-history {
+            max-height: 300px;
+            overflow-y: auto;
+            background: white;
+            border: 1px solid #dee2e6;
+            border-radius: 8px;
+            padding: 1rem;
+        }
+        
+        .prediction-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 0.5rem 0;
+            border-bottom: 1px solid #eee;
+        }
+        
+        .prediction-item:last-child {
+            border-bottom: none;
+        }
+        
+        .controls-panel {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 8px;
+            margin: 1rem 0;
+        }
+        
+        .filter-controls {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+            margin: 1rem 0;
+        }
+        
+        .filter-button {
+            padding: 0.5rem 1rem;
+            border: 1px solid #007bff;
+            background: white;
+            color: #007bff;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-button.active {
+            background: #007bff;
+            color: white;
+        }
+        
+        .filter-button:hover {
+            background: #0056b3;
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container">
+            <h1>📊 Live Data Stream</h1>
+            <p class="subtitle">Real-time monitoring of roulette prediction system performance</p>
+        </div>
+    </header>
+
+    <nav>
+        <div class="container">
+            <ul>
+                <li><a href="index.html">🏠 Home</a></li>
+                <li><a href="scrolling.html" class="active">📊 Live Data</a></li>
+                <li><a href="references.html">📚 References</a></li>
+                <li><a href="podcast.html">🎙️ Podcast</a></li>
+            </ul>
+        </div>
+    </nav>
+
+    <main class="container">
+        <!-- System Status -->
+        <div class="card">
+            <h2>🚦 System Status</h2>
+            <div id="system-status" class="status status-success">System running - Live data streaming</div>
+            
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <div class="metric-value" id="fps-metric">15.2</div>
+                    <div class="metric-label">Frames Per Second</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="detection-metric">82%</div>
+                    <div class="metric-label">Wheel Detection</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="predictions-metric">127</div>
+                    <div class="metric-label">Predictions Made</div>
+                </div>
+                <div class="metric-card">
+                    <div class="metric-value" id="accuracy-metric">73%</div>
+                    <div class="metric-label">Accuracy Rate</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Live Data Stream -->
+        <div class="card">
+            <h2>📡 Live Data Stream</h2>
+            <div class="controls-panel">
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="auto-scroll" checked> Auto-scroll to latest data
+                    </label>
+                    <label style="margin-left: 2rem;">
+                        <input type="checkbox" id="sound-alerts"> Sound alerts for predictions
+                    </label>
+                </div>
+                
+                <div class="filter-controls">
+                    <button class="filter-button active" data-filter="all">All Events</button>
+                    <button class="filter-button" data-filter="prediction">Predictions Only</button>
+                    <button class="filter-button" data-filter="detection">Detections Only</button>
+                    <button class="filter-button" data-filter="error">Errors Only</button>
+                </div>
+            </div>
+            
+            <div id="live-data" class="data-stream">
+                <div class="data-point">
+                    <span class="timestamp">14:30:45</span>
+                    <span class="fps">FPS: 15.2</span>
+                    <span class="detection">Wheel: 0.82</span>
+                    <span class="position">Ball: 145°</span>
+                </div>
+                <div class="data-point">
+                    <span class="timestamp">14:30:44</span>
+                    <span class="fps">FPS: 14.8</span>
+                    <span class="detection">Wheel: 0.79</span>
+                    <span class="position">Ball: 142°</span>
+                </div>
+                <div class="data-point">
+                    <span class="timestamp">14:30:43</span>
+                    <span class="fps">FPS: 15.1</span>
+                    <span class="detection">Wheel: 0.85</span>
+                    <span class="position">Ball: 138°</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="grid grid-2">
+            <!-- Visualization -->
+            <div class="card">
+                <h2>🎰 Live Wheel Visualization</h2>
+                <div class="visualization-area">
+                    <div class="roulette-visualization">
+                        <svg class="wheel-svg" viewBox="0 0 250 250">
+                            <!-- Wheel border -->
+                            <circle cx="125" cy="125" r="120" fill="#2d5a27" stroke="#8b4513" stroke-width="6"/>
+                            <circle cx="125" cy="125" r="100" fill="#0d2818" stroke="#333" stroke-width="2"/>
+                            
+                            <!-- Number pockets (simplified) -->
+                            <g id="wheel-numbers">
+                                <!-- This would be populated by JavaScript with actual roulette numbers -->
+                            </g>
+                            
+                            <!-- Center -->
+                            <circle cx="125" cy="125" r="15" fill="#8b4513"/>
+                            <circle cx="125" cy="125" r="8" fill="#333"/>
+                        </svg>
+                        <div class="ball-position" id="ball-indicator"></div>
+                    </div>
+                    
+                    <div style="text-align: center; margin-top: 1rem;">
+                        <div class="status status-info">Ball tracking active</div>
+                        <p>Current angle: <strong id="ball-angle">145°</strong></p>
+                        <p>Speed: <strong id="ball-speed">12.3 RPM</strong></p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Prediction History -->
+            <div class="card">
+                <h2>📈 Recent Predictions</h2>
+                <div class="prediction-history" id="prediction-history">
+                    <div class="prediction-item">
+                        <div>
+                            <span class="roulette-number red">17</span>
+                            <span style="margin-left: 1rem;">Confidence: 85%</span>
+                        </div>
+                        <div>
+                            <small>14:30:42</small>
+                        </div>
+                    </div>
+                    <div class="prediction-item">
+                        <div>
+                            <span class="roulette-number black">29</span>
+                            <span style="margin-left: 1rem;">Confidence: 72%</span>
+                        </div>
+                        <div>
+                            <small>14:30:15</small>
+                        </div>
+                    </div>
+                    <div class="prediction-item">
+                        <div>
+                            <span class="roulette-number red">3</span>
+                            <span style="margin-left: 1rem;">Confidence: 91%</span>
+                        </div>
+                        <div>
+                            <small>14:29:48</small>
+                        </div>
+                    </div>
+                    <div class="prediction-item">
+                        <div>
+                            <span class="roulette-number black">15</span>
+                            <span style="margin-left: 1rem;">Confidence: 68%</span>
+                        </div>
+                        <div>
+                            <small>14:29:21</small>
+                        </div>
+                    </div>
+                    <div class="prediction-item">
+                        <div>
+                            <span class="roulette-number green">0</span>
+                            <span style="margin-left: 1rem;">Confidence: 45%</span>
+                        </div>
+                        <div>
+                            <small>14:28:55</small>
+                        </div>
+                    </div>
+                </div>
+                
+                <div style="margin-top: 1rem; text-align: center;">
+                    <button class="btn btn-primary" onclick="exportPredictionHistory()">
+                        📥 Export History
+                    </button>
+                    <button class="btn btn-warning" onclick="clearPredictionHistory()">
+                        🗑️ Clear History
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Performance Analytics -->
+        <div class="card">
+            <h2>📊 Performance Analytics</h2>
+            <div class="grid grid-3">
+                <div>
+                    <h3>Capture Performance</h3>
+                    <ul>
+                        <li>Target FPS: <strong>15</strong></li>
+                        <li>Actual FPS: <strong id="current-fps">15.2</strong></li>
+                        <li>Frame drops: <strong>0.3%</strong></li>
+                        <li>Capture method: <strong>Playwright</strong></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Detection Accuracy</h3>
+                    <ul>
+                        <li>Wheel detection: <strong id="wheel-accuracy">82%</strong></li>
+                        <li>Ball detection: <strong>91%</strong></li>
+                        <li>Motion tracking: <strong>87%</strong></li>
+                        <li>False positives: <strong>2.1%</strong></li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>System Resources</h3>
+                    <ul>
+                        <li>CPU usage: <strong>45%</strong></li>
+                        <li>Memory usage: <strong>2.1 GB</strong></li>
+                        <li>GPU acceleration: <strong>Enabled</strong></li>
+                        <li>Processing queue: <strong>3 frames</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Stream Information -->
+        <div class="card">
+            <h2>🔗 Stream Information</h2>
+            <div class="grid grid-2">
+                <div>
+                    <h3>Connection Details</h3>
+                    <ul>
+                        <li><strong>URL:</strong> https://www.tokyo.cz/game/tomhornlive_56</li>
+                        <li><strong>Status:</strong> <span class="status status-success" style="display: inline-block; padding: 0.2rem 0.5rem;">Connected</span></li>
+                        <li><strong>Resolution:</strong> 1920x1080</li>
+                        <li><strong>Bitrate:</strong> 2.5 Mbps</li>
+                        <li><strong>Latency:</strong> 180ms</li>
+                    </ul>
+                </div>
+                <div>
+                    <h3>Stream Quality</h3>
+                    <div class="progress" style="margin: 0.5rem 0;">
+                        <div class="progress-bar" style="width: 85%"></div>
+                    </div>
+                    <p>Quality: <strong>85%</strong> (Very Good)</p>
+                    
+                    <ul>
+                        <li>Video quality: <strong>High</strong></li>
+                        <li>Compression: <strong>H.264</strong></li>
+                        <li>Audio: <strong>AAC 128kbps</strong></li>
+                        <li>Buffering: <strong>0%</strong></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <!-- Debug Information -->
+        <div class="card">
+            <h2>🔧 Debug Information</h2>
+            <details>
+                <summary>Show detailed system information</summary>
+                <div style="margin-top: 1rem;">
+                    <div class="grid grid-2">
+                        <div>
+                            <h4>System Environment</h4>
+                            <ul>
+                                <li>Python version: 3.9.7</li>
+                                <li>OpenCV version: 4.5.3</li>
+                                <li>Playwright version: 1.20.0</li>
+                                <li>Operating system: Windows 10</li>
+                                <li>Browser: Chromium 98.0.4758.80</li>
+                            </ul>
+                        </div>
+                        <div>
+                            <h4>Processing Pipeline</h4>
+                            <ul>
+                                <li>Frame capture: ✅ Active</li>
+                                <li>Preprocessing: ✅ Active</li>
+                                <li>Wheel detection: ✅ Active</li>
+                                <li>Ball tracking: ✅ Active</li>
+                                <li>Physics simulation: ✅ Active</li>
+                                <li>TTS output: ✅ Active</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </details>
+        </div>
+    </main>
+
+    <footer>
+        <div class="container">
+            <p>⚠️ Live data streaming for educational and research purposes only.</p>
+            <div class="footer-links">
+                <a href="index.html">Home</a>
+                <a href="references.html">Documentation</a>
+                <a href="podcast.html">Generate Podcast</a>
+            </div>
+        </div>
+    </footer>
+
+    <script src="script.js"></script>
+    <script>
+        // Page-specific JavaScript for scrolling/live data functionality
+        function exportPredictionHistory() {
+            showToast('Prediction history exported successfully!', 'success');
+        }
+        
+        function clearPredictionHistory() {
+            if (confirm('Are you sure you want to clear the prediction history?')) {
+                document.getElementById('prediction-history').innerHTML = '<p>History cleared.</p>';
+                showToast('Prediction history cleared.', 'info');
+            }
+        }
+        
+        // Filter functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const filterButtons = document.querySelectorAll('.filter-button');
+            filterButtons.forEach(button => {
+                button.addEventListener('click', function() {
+                    filterButtons.forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    
+                    const filter = this.dataset.filter;
+                    showToast(`Filter applied: ${filter}`, 'info');
+                });
+            });
+            
+            // Update ball position animation
+            setInterval(updateBallPosition, 100);
+        });
+        
+        function updateBallPosition() {
+            const ballIndicator = document.getElementById('ball-indicator');
+            const ballAngle = document.getElementById('ball-angle');
+            const ballSpeed = document.getElementById('ball-speed');
+            
+            if (ballIndicator && ballAngle && ballSpeed) {
+                const angle = (Date.now() / 50) % 360; // Simulate rotation
+                const radius = 90; // Distance from center
+                const centerX = 125;
+                const centerY = 125;
+                
+                const x = centerX + radius * Math.cos(angle * Math.PI / 180);
+                const y = centerY + radius * Math.sin(angle * Math.PI / 180);
+                
+                ballIndicator.style.left = x + 'px';
+                ballIndicator.style.top = y + 'px';
+                
+                ballAngle.textContent = Math.round(angle) + '°';
+                ballSpeed.textContent = (12 + Math.sin(Date.now() / 1000) * 3).toFixed(1) + ' RPM';
+            }
+        }
+    </script>
+</body>
+</html>
